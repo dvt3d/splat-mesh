@@ -1,0 +1,37 @@
+{
+  "name": "splat-mesh",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/dvt3d/splat-mesh.git",
+  "author": "Caven Chen <cavencj@gmail.com>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "rimraf dist && gulp dev",
+    "build": "rimraf dist && gulp build",
+    "build:node": "rimraf dist && gulp buildNode",
+    "build:iife": "rimraf dist && gulp buildIIFE",
+    "build:release": "rimraf dist && gulp buildRelease",
+    "prepublishOnly": "yarn run build:release",
+    "lint": "eslint --fix src"
+  },
+  "peerDependencies": {
+    "three": "^0.182.0"
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "devDependencies": {
+    "chalk": "^5.6.2",
+    "esbuild": "^0.27.2",
+    "esbuild-plugin-globals": "^0.2.0",
+    "esbuild-plugin-glsl": "^1.4.1",
+    "gulp": "^5.0.1",
+    "prettier": "^3.7.4",
+    "rimraf": "^6.1.2",
+    "shelljs": "^0.10.0"
+  },
+  "dependencies": {
+    "fs-extra": "^11.3.3"
+  }
+}
