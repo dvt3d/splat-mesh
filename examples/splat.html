@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>load-splat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #scene-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+<div id="scene-container"></div>
+<script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three/+esm",
+        "three/addons": "https://cdn.jsdelivr.net/npm/three/examples/jsm/Addons.js",
+        "3dgs-loader": "./3dgs-loader/index.js",
+        "@dvt3d/splat-mesh": "../dist/index.js"
+      }
+    }
+</script>
+<script src="scene.js" type="module"></script>
+<script src="splat.js" type="module"></script>
+</body>
+
+</html>

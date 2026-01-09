@@ -1,5 +1,5 @@
 class SortScheduler {
-  constructor(intervalTime = 1000, stableStopTime = 3000) {
+  constructor(intervalTime = 200, stableStopTime = 3000) {
     this._intervalTime = intervalTime // 两次排序最小间隔
     this._stableStopTime = stableStopTime // 稳定后继续允许排序的时间窗口
     this._isSorting = false

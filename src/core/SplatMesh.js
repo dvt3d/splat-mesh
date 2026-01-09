@@ -100,58 +100,7 @@ class SplatMesh extends Mesh {
   }
 
   set vertexCount(vertexCount) {
-    if (vertexCount === this._vertexCount) {
-      return
-    }
-
-    this._vertexCount = Math.min(vertexCount, maxVertexes)
-
-    this._textureHeight =
-      Math.floor((this._vertexCount - 1) / this._textureWidth) + 1
-
-    this._centerAndScaleData = new Float32Array(
-      this._textureWidth * this._textureHeight * 4,
-    )
-
-    if (this._centerAndScaleTexture) {
-      this._centerAndScaleTexture.dispose()
-    }
-
-    this._centerAndScaleTexture = new DataTexture(
-      this._centerAndScaleData,
-      this._textureWidth,
-      this._textureHeight,
-      RGBAFormat,
-      FloatType,
-    )
-
-    this._rotationAndColorData = new Uint32Array(
-      this._textureWidth * this._textureHeight * 4,
-    )
-
-    if (this._rotationAndColorTexture) {
-      this._rotationAndColorTexture.dispose()
-    }
-
-    this._rotationAndColorTexture = new DataTexture(
-      this._rotationAndColorData,
-      this._textureWidth,
-      this._textureHeight,
-      RGBAIntegerFormat,
-      UnsignedIntType,
-    )
-    this._rotationAndColorTexture.internalFormat = 'RGBA32UI'
-
-    const splatIndexArray = new Uint32Array(
-      this._textureWidth * this._textureHeight,
-    )
-    const splatIndexes = new InstancedBufferAttribute(splatIndexArray, 1, false)
-    splatIndexes.setUsage(DynamicDrawUsage)
-    this.geometry.setAttribute('splatIndex', splatIndexes)
-    this.material.uniforms.centerAndScaleTexture.value =
-      this._centerAndScaleTexture
-    this.material.uniforms.covAndColorTexture.value =
-      this._rotationAndColorTexture
+    this.setVertexCount(vertexCount)
   }
 
   get vertexCount() {
@@ -288,39 +237,85 @@ class SplatMesh extends Mesh {
 
   /**
    *
+   * @param vertexCount
    */
-  async computeBounds() {
-    if (this._bounds || !this._worker) {
+  setVertexCount(vertexCount) {
+    if (vertexCount === this._vertexCount) {
       return
     }
-    const result = await this._worker.call('compute_bounds', this._meshId)
-    if (this._meshId === result.meshId) {
-      this._bounds = result.data
+    this._vertexCount = Math.min(vertexCount, maxVertexes)
+
+    this._textureHeight =
+      Math.floor((this._vertexCount - 1) / this._textureWidth) + 1
+
+    this._centerAndScaleData = new Float32Array(
+      this._textureWidth * this._textureHeight * 4,
+    )
+
+    if (this._centerAndScaleTexture) {
+      this._centerAndScaleTexture.dispose()
     }
+
+    this._centerAndScaleTexture = new DataTexture(
+      this._centerAndScaleData,
+      this._textureWidth,
+      this._textureHeight,
+      RGBAFormat,
+      FloatType,
+    )
+
+    this._rotationAndColorData = new Uint32Array(
+      this._textureWidth * this._textureHeight * 4,
+    )
+
+    if (this._rotationAndColorTexture) {
+      this._rotationAndColorTexture.dispose()
+    }
+
+    this._rotationAndColorTexture = new DataTexture(
+      this._rotationAndColorData,
+      this._textureWidth,
+      this._textureHeight,
+      RGBAIntegerFormat,
+      UnsignedIntType,
+    )
+    this._rotationAndColorTexture.internalFormat = 'RGBA32UI'
+
+    const splatIndexArray = new Uint32Array(
+      this._textureWidth * this._textureHeight,
+    )
+    const splatIndexes = new InstancedBufferAttribute(splatIndexArray, 1, false)
+    splatIndexes.setUsage(DynamicDrawUsage)
+    this.geometry.setAttribute('splatIndex', splatIndexes)
+    this.material.uniforms.centerAndScaleTexture.value =
+      this._centerAndScaleTexture
+    this.material.uniforms.covAndColorTexture.value =
+      this._rotationAndColorTexture
+    return this
   }
 
   /**
    *
+   * @param worker
+   * @returns {SplatMesh}
    */
-  async dispose() {
-    this._bounds = null
-    if (this._centerAndScaleTexture) {
-      this._centerAndScaleTexture.dispose()
-      this._centerAndScaleData = null
-    }
-    if (this._rotationAndColorTexture) {
-      this._rotationAndColorTexture.dispose()
-      this._rotationAndColorData = null
-    }
-    if (this._worker) {
-      await this._worker.call('unregister_positions', this._bufferId)
-    }
-    this._bufferId = null
-    this._sortScheduler = null
-    this.geometry.dispose()
-    this.material.dispose()
-    this.parent = null
+  attachWorker(worker) {
+    this._worker = worker
+    return this
   }
+
+  /**
+   *
+   * @returns {SplatMesh}
+   */
+  detachWorker() {
+    if (this._worker) {
+      this._worker.call('unregister_positions', this._bufferId)
+    }
+    this._worker = null
+    return this
+  }
+
   /**
    *
    * @param buffer
@@ -393,6 +388,42 @@ class SplatMesh extends Mesh {
     this._loadedVertexCount = 0
     this._updateTexture(this._vertexCount)
     return this
+  }
+
+  /**
+   *
+   */
+  async computeBounds() {
+    if (this._bounds || !this._worker) {
+      return
+    }
+    const result = await this._worker.call('compute_bounds', this._meshId)
+    if (this._meshId === result.meshId) {
+      this._bounds = result.data
+    }
+  }
+
+  /**
+   *
+   */
+  dispose() {
+    this._bounds = null
+    if (this._centerAndScaleTexture) {
+      this._centerAndScaleTexture.dispose()
+      this._centerAndScaleData = null
+    }
+    if (this._rotationAndColorTexture) {
+      this._rotationAndColorTexture.dispose()
+      this._rotationAndColorData = null
+    }
+    if (this._worker) {
+      this._worker.call('unregister_positions', this._bufferId)
+    }
+    this._bufferId = null
+    this._sortScheduler = null
+    this.geometry.dispose()
+    this.material.dispose()
+    this.parent = null
   }
 }
 
