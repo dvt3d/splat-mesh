@@ -115,6 +115,10 @@ class SplatMesh extends Mesh {
     return this._useFrustumCulled
   }
 
+  get sortScheduler() {
+    return this._sortScheduler
+  }
+
   /**
    *
    * @param camera
@@ -323,7 +327,12 @@ class SplatMesh extends Mesh {
    * @returns {SplatMesh}
    */
   async setDataFromBuffer(buffer) {
-    if (this._vertexCount <= 0 || !this._worker) {
+    if (this._vertexCount <= 0) {
+      console.warn('[SplatMesh] setDataFromBuffer skipped: vertexCount is 0')
+      return this
+    }
+    if (!this._worker) {
+      console.warn('[SplatMesh] setDataFromBuffer skipped: worker not ready')
       return this
     }
     const data = await this._worker.call(
@@ -332,9 +341,9 @@ class SplatMesh extends Mesh {
       buffer,
       this._vertexCount,
     )
-    buffer = null
     this._updateData(data)
     this._loadedVertexCount = 0
+    this._bounds = null
     this._updateTexture(this._vertexCount)
     return this
   }
@@ -345,7 +354,12 @@ class SplatMesh extends Mesh {
    * @returns {SplatMesh}
    */
   async setDataFromGeometry(geometry) {
-    if (this._vertexCount <= 0 || !this._worker) {
+    if (this._vertexCount <= 0) {
+      console.warn('[SplatMesh] setDataFromGeometry skipped: vertexCount is 0')
+      return this
+    }
+    if (!this._worker) {
+      console.warn('[SplatMesh] setDataFromGeometry skipped: worker not ready')
       return this
     }
     const data = await this._worker.call(
@@ -357,9 +371,9 @@ class SplatMesh extends Mesh {
       geometry.attributes.color.array,
       this._vertexCount,
     )
-    geometry.dispose()
     this._updateData(data)
     this._loadedVertexCount = 0
+    this._bounds = null
     this._updateTexture(this._vertexCount)
     return this
   }
@@ -370,8 +384,13 @@ class SplatMesh extends Mesh {
    * @returns {SplatMesh}
    */
   async setDataFromSpz(spzData) {
-    if (this._vertexCount <= 0 || !this._worker) {
-      return
+    if (this._vertexCount <= 0) {
+      console.warn('[SplatMesh] setDataFromSpz skipped: vertexCount is 0')
+      return this
+    }
+    if (!this._worker) {
+      console.warn('[SplatMesh] setDataFromSpz skipped: worker not ready')
+      return this
     }
     const data = await this._worker.call(
       'process_splats_from_spz',
@@ -383,9 +402,9 @@ class SplatMesh extends Mesh {
       spzData.alphas,
       this._vertexCount,
     )
-    spzData = null
     this._updateData(data)
     this._loadedVertexCount = 0
+    this._bounds = null
     this._updateTexture(this._vertexCount)
     return this
   }
@@ -394,13 +413,17 @@ class SplatMesh extends Mesh {
    *
    */
   async computeBounds() {
-    if (this._bounds || !this._worker) {
-      return
+    if (!this._worker) {
+      console.warn('[SplatMesh] computeBounds skipped: worker not ready')
+      return this
     }
-    const result = await this._worker.call('compute_bounds', this._meshId)
-    if (this._meshId === result.meshId) {
-      this._bounds = result.data
+    if (!this._bounds) {
+      const result = await this._worker.call('compute_bounds', this._meshId)
+      if (this._meshId === result.meshId) {
+        this._bounds = result.data
+      }
     }
+    return this
   }
 
   /**

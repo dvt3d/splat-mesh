@@ -1,7 +1,7 @@
 class SortScheduler {
-  constructor(intervalTime = 200, stableStopTime = 3000) {
-    this._intervalTime = intervalTime // 两次排序最小间隔
-    this._stableStopTime = stableStopTime // 稳定后继续允许排序的时间窗口
+  constructor() {
+    this._intervalTime = 200 // 两次排序最小间隔
+    this._stableStopTime = 3000 // 稳定后继续允许排序的时间窗口
     this._isSorting = false
     this._dirty = true
     this._lastMvMatrix = null
@@ -21,13 +21,42 @@ class SortScheduler {
   }
   get dirty() {
     return this._dirty
-  } // 修复递归 bug
+  }
 
+  set intervalTime(intervalTime) {
+    this._intervalTime = intervalTime
+  }
+
+  get intervalTime() {
+    return this._intervalTime
+  }
+
+  set stableStopTime(stableStopTime) {
+    this._stableStopTime = stableStopTime
+  }
+
+  get stableStopTime() {
+    return this._stableStopTime
+  }
+
+  /**
+   *
+   * @param prev
+   * @param curr
+   * @returns {boolean}
+   * @private
+   */
   _isMatrixChanged(prev, curr) {
     if (!prev) return true
     return !prev.equals(curr)
   }
 
+  /**
+   *
+   * @param mvMatrix
+   * @param triggerSort
+   * @returns {SortScheduler}
+   */
   tick(mvMatrix, triggerSort) {
     const now = performance.now()
     const changed = this._isMatrixChanged(this._lastMvMatrix, mvMatrix)

@@ -1,12 +1,10 @@
 import { SplatLoader } from '3dgs-loader'
 import { SplatWorker, SplatMesh } from '@dvt3d/splat-mesh'
-
-const splatLoader = new SplatLoader()
-
+const splatLoader = new SplatLoader({
+  workerLimit: 1,
+})
 const data = await splatLoader.load('http://localhost:8080/ggy.splat')
-
 const splatWorker = new SplatWorker('../wasm/wasm_splat.worker.min.js')
-
 let splatMesh = new SplatMesh()
 splatMesh.attachWorker(splatWorker)
 splatMesh.setVertexCount(data.numSplats)
