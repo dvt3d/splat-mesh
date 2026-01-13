@@ -44,7 +44,6 @@ class SplatMesh extends Mesh {
     this._vertexCount = 0
     this._textureWidth = maxTextureSize
     this._textureHeight = 1
-    this._loadedVertexCount = 0
     this._threshold = -0.00001
     this._centerAndScaleData = null
     this._centerAndScaleTexture = null
@@ -132,45 +131,24 @@ class SplatMesh extends Mesh {
 
   /**
    *
+   * @param data
    * @param vertexCount
    * @private
    */
-  _updateTexture(vertexCount) {
-    while (vertexCount > 0) {
-      const xOffset = this._loadedVertexCount % this._textureWidth
-      const yOffset = Math.floor(this._loadedVertexCount / this._textureWidth)
-      const maxWidth = this._textureWidth - xOffset
-      const width = Math.min(vertexCount, maxWidth)
-      const height = Math.ceil(width / this._textureWidth) || 1
-      const pixelsToWrite = width * height
-      const dstOffset = (yOffset * this._textureWidth + xOffset) * 4
-      const srcOffset = this._loadedVertexCount * 4
-      const copyLength = pixelsToWrite * 4
-      this._centerAndScaleTexture.image.data.set(
-        this._centerAndScaleData.subarray(srcOffset, srcOffset + copyLength),
-        dstOffset,
-      )
-      this._rotationAndColorTexture.image.data.set(
-        this._rotationAndColorData.subarray(srcOffset, srcOffset + copyLength),
-        dstOffset,
-      )
-      this._loadedVertexCount += pixelsToWrite
-      vertexCount -= pixelsToWrite
-    }
-    this._centerAndScaleTexture.needsUpdate = true
-    this._rotationAndColorTexture.needsUpdate = true
-  }
-
-  /**
-   *
-   * @param buffer
-   * @param vertexCount
-   * @private
-   */
-  _updateData(data) {
+  _updateTexture(data, vertexCount) {
     if (data && this._meshId === data.meshId) {
       this._centerAndScaleData.set(data.out_cs)
       this._rotationAndColorData.set(data.out_rc)
+      this._centerAndScaleTexture.image.data.set(
+        this._centerAndScaleData.subarray(0, vertexCount * 4),
+        0,
+      )
+      this._rotationAndColorTexture.image.data.set(
+        this._rotationAndColorData.subarray(0, vertexCount * 4),
+        0,
+      )
+      this._centerAndScaleTexture.needsUpdate = true
+      this._rotationAndColorTexture.needsUpdate = true
       this._sortScheduler.dirty = true
     }
   }
@@ -341,10 +319,8 @@ class SplatMesh extends Mesh {
       buffer,
       this._vertexCount,
     )
-    this._updateData(data)
-    this._loadedVertexCount = 0
+    this._updateTexture(data, this._vertexCount)
     this._bounds = null
-    this._updateTexture(this._vertexCount)
     return this
   }
 
@@ -371,10 +347,8 @@ class SplatMesh extends Mesh {
       geometry.attributes.color.array,
       this._vertexCount,
     )
-    this._updateData(data)
-    this._loadedVertexCount = 0
+    this._updateTexture(data, this._vertexCount)
     this._bounds = null
-    this._updateTexture(this._vertexCount)
     return this
   }
 
@@ -402,10 +376,8 @@ class SplatMesh extends Mesh {
       spzData.alphas,
       this._vertexCount,
     )
-    this._updateData(data)
-    this._loadedVertexCount = 0
+    this._updateTexture(data, this._vertexCount)
     this._bounds = null
-    this._updateTexture(this._vertexCount)
     return this
   }
 
