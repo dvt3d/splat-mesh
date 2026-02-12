@@ -1,24 +1,58 @@
 export class SplatWorker {
   constructor(workerUrl, { timeout = 0 } = {}) {
-    this._worker = new Worker(workerUrl, { type: 'module' })
+    this._workerUrl = workerUrl
+    this._worker = null
     this._seq = 0
     this._pending = new Map()
     this._timeout = timeout
     this._initPromise = null
     this._ready = false
-    this._worker.onmessage = (e) => this._handleMessage(e)
-    this._worker.onerror = (err) => this._handleError(err)
-    this._worker.onmessageerror = (err) =>
-      console.error('Worker message error:', err)
+    this._createWorker()
   }
 
+  /**
+   *
+   * @private
+   */
+  _createWorker() {
+    try {
+      this._worker = new Worker(this._workerUrl, { type: 'module' })
+      this._worker.onmessage = (e) => this._handleMessage(e)
+      this._worker.onerror = (err) => this._handleError(err)
+      this._worker.onmessageerror = (err) =>
+        console.error('Worker message error:', err)
+      return
+    } catch (err) {}
+    fetch(this._workerUrl)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(
+            `[SplatWorker] Failed to fetch worker: ${this._workerUrl}`,
+          )
+        }
+        return res.text()
+      })
+      .then((text) => {
+        const blob = new Blob([text], { type: 'application/javascript' })
+        const blobUrl = URL.createObjectURL(blob)
+        this._worker = new Worker(blobUrl)
+        this._worker.onmessage = (e) => this._handleMessage(e)
+        this._worker.onerror = (err) => this._handleError(err)
+        this._worker.onmessageerror = (err) =>
+          console.error('Worker message error:', err)
+      })
+  }
+
+  /**
+   *
+   * @param e
+   * @private
+   */
   _handleMessage(e) {
     const { id, result, error } = e.data
     const pending = this._pending.get(id)
     if (!pending) return
-
     this._pending.delete(id)
-
     if (error) pending.reject(error)
     else pending.resolve(result)
   }
@@ -64,7 +98,6 @@ export class SplatWorker {
       const id = ++this._seq
       this._pending.set(id, { resolve, reject })
 
-      // 发给 Worker 的初始化请求
       this._worker.postMessage({ id, fn: '__init_wasm__', args: [] })
     })
 
@@ -81,6 +114,9 @@ export class SplatWorker {
    */
   call(fn, ...args) {
     return new Promise((resolve, reject) => {
+      if (!this._worker) {
+        reject(`the worker ${this._workerUrl} does not exist`)
+      }
       const id = ++this._seq
       this._pending.set(id, { resolve, reject })
       const transferables = this._collectTransferables(args)
@@ -107,7 +143,6 @@ export class SplatWorker {
       pending.reject(reason)
       this._pending.delete(id)
     }
-
     return this
   }
 
@@ -118,7 +153,6 @@ export class SplatWorker {
   dispose() {
     this._worker.terminate()
     this._pending.clear()
-
     return this
   }
 }

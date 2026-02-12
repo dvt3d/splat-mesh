@@ -17,6 +17,12 @@
   "peerDependencies": {
     "three": "^0.182.0"
   },
+  "keywords": [
+    "Gaussian splatting",
+    "3dgs",
+    "three.js",
+    "splat-mesh"
+  ],
   "files": [
     "dist"
   ],
