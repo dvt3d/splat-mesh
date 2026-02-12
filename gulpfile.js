@@ -57,6 +57,11 @@ async function buildModules(options) {
   }
 }
 
+async function copyWorkers() {
+  await fse.emptyDir(path.join('dist', 'workers'))
+  await fse.copySync('workers', path.join('dist', 'workers'))
+}
+
 async function regenerate(option, content) {
   await fse.remove('dist/index.js')
   await buildModules(option)
@@ -85,16 +90,24 @@ export const dev = gulp.series(() => {
   return watcher
 })
 
-export const buildIIFE = gulp.series(() => buildModules({ iife: true }))
+export const buildIIFE = gulp.series(
+  () => buildModules({ iife: true }),
+  () => copyWorkers(),
+)
 
-export const buildNode = gulp.series(() => buildModules({ node: true }))
+export const buildNode = gulp.series(
+  () => buildModules({ node: true }),
+  () => copyWorkers(),
+)
 
 export const build = gulp.series(
   () => buildModules({ iife: true }),
   () => buildModules({ node: true }),
+  () => copyWorkers(),
 )
 
 export const buildRelease = gulp.series(
   () => buildModules({ iife: true, minify: true }),
   () => buildModules({ node: true, minify: true }),
+  () => copyWorkers(),
 )
