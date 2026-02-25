@@ -15,14 +15,19 @@ export class SplatWorker {
    * @private
    */
   _createWorker() {
+    const bindHandlers = (worker) => {
+      worker.onmessage = (e) => this._handleMessage(e)
+      worker.onerror = (err) => this._handleError(err)
+      worker.onmessageerror = (err) =>
+        console.error('[SplatWorker] Worker message error:', err)
+    }
     try {
       this._worker = new Worker(this._workerUrl, { type: 'module' })
-      this._worker.onmessage = (e) => this._handleMessage(e)
-      this._worker.onerror = (err) => this._handleError(err)
-      this._worker.onmessageerror = (err) =>
-        console.error('Worker message error:', err)
+      bindHandlers(this._worker)
       return
-    } catch (err) {}
+    } catch (err) {
+      console.error('Worker error:', err)
+    }
     fetch(this._workerUrl)
       .then((res) => {
         if (!res.ok) {
@@ -36,10 +41,7 @@ export class SplatWorker {
         const blob = new Blob([text], { type: 'application/javascript' })
         const blobUrl = URL.createObjectURL(blob)
         this._worker = new Worker(blobUrl)
-        this._worker.onmessage = (e) => this._handleMessage(e)
-        this._worker.onerror = (err) => this._handleError(err)
-        this._worker.onmessageerror = (err) =>
-          console.error('Worker message error:', err)
+        bindHandlers(this._worker)
       })
   }
 
@@ -63,9 +65,9 @@ export class SplatWorker {
    * @private
    */
   _handleError(err) {
-    console.error('[WasmWorkerTaskProcessor] Worker error:', err)
+    console.error('[SplatWorker] Worker error:', err)
     for (const [id, pending] of this._pending) {
-      pending.reject('Worker crashed')
+      pending.reject('[SplatWorker] Worker crashed')
     }
     this._pending.clear()
   }
@@ -125,7 +127,9 @@ export class SplatWorker {
         setTimeout(() => {
           if (this._pending.has(id)) {
             this._pending.delete(id)
-            reject(`Task "${fn}" timeout after ${this._timeout}ms`)
+            reject(
+              `[SplatWorker] Task "${fn}" timeout after ${this._timeout}ms`,
+            )
           }
         }, this._timeout)
       }
