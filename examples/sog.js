@@ -6,7 +6,7 @@ const sogLoader = new SogLoader({
   wasmBaseUrl: 'https://cdn.jsdelivr.net/npm/3dgs-loader@1.2.0/dist/wasm/',
 })
 const data = await sogLoader.loadAsSplat('http://localhost:8080/ggy.sog')
-const splatWorker = new SplatWorker('../workers/wasm_splat.worker.min.js')
+const splatWorker = new SplatWorker('../workers/')
 const splatMesh = new SplatMesh()
 splatMesh.threshold = -0.000001
 splatMesh.attachWorker(splatWorker)

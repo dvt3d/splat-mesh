@@ -5,7 +5,7 @@ const plyLoader = new PlyLoader({
   workerBaseUrl: 'https://cdn.jsdelivr.net/npm/3dgs-loader@1.2.0/dist/',
 })
 const data = await plyLoader.loadAsSplat('http://localhost:8080/ggy.ply')
-const splatWorker = new SplatWorker('../workers/wasm_splat.worker.min.js')
+const splatWorker = new SplatWorker('../workers/')
 let splatMesh = new SplatMesh()
 splatMesh.attachWorker(splatWorker)
 splatMesh.setVertexCount(data.numSplats)

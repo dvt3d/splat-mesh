@@ -1,7 +1,10 @@
+import { resolveUrl } from '../utils'
+
 export class SplatWorker {
-  constructor(workerUrl, { timeout = 0 } = {}) {
-    this._workerUrl = workerUrl
-    this._worker = null
+  constructor(baseUrl, { timeout = 0 } = {}) {
+    this._baseUrl = resolveUrl(baseUrl || './')
+    this._workerUrl = new URL('wasm_splat.worker.min.js', this._baseUrl).href
+    this._wasmUrl = new URL('wasm_splat_bg.wasm', this._baseUrl).href
     this._seq = 0
     this._pending = new Map()
     this._timeout = timeout
@@ -25,24 +28,16 @@ export class SplatWorker {
       this._worker = new Worker(this._workerUrl, { type: 'module' })
       bindHandlers(this._worker)
       return
-    } catch (err) {
-      console.error('Worker error:', err)
-    }
-    fetch(this._workerUrl)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(
-            `[SplatWorker] Failed to fetch worker: ${this._workerUrl}`,
-          )
-        }
-        return res.text()
-      })
-      .then((text) => {
-        const blob = new Blob([text], { type: 'application/javascript' })
-        const blobUrl = URL.createObjectURL(blob)
-        this._worker = new Worker(blobUrl)
-        bindHandlers(this._worker)
-      })
+    } catch (err) {}
+
+    const wrapperCode = `
+      import ${JSON.stringify(this._workerUrl)};
+    `
+    const wrapperUrl = URL.createObjectURL(
+      new Blob([wrapperCode], { type: 'text/javascript' }),
+    )
+    this._worker = new Worker(wrapperUrl, { type: 'module' })
+    bindHandlers(this._worker)
   }
 
   /**
@@ -67,7 +62,7 @@ export class SplatWorker {
   _handleError(err) {
     console.error('[SplatWorker] Worker error:', err)
     for (const [id, pending] of this._pending) {
-      pending.reject('[SplatWorker] Worker crashed')
+      pending.reject('[SplatWorker]Worker crashed')
     }
     this._pending.clear()
   }
@@ -99,8 +94,12 @@ export class SplatWorker {
     this._initPromise = new Promise((resolve, reject) => {
       const id = ++this._seq
       this._pending.set(id, { resolve, reject })
-
-      this._worker.postMessage({ id, fn: '__init_wasm__', args: [] })
+      this._worker.postMessage({
+        id,
+        fn: '__init__',
+        wasmUrl: this._wasmUrl,
+        args: [],
+      })
     })
 
     const ok = await this._initPromise
@@ -122,7 +121,10 @@ export class SplatWorker {
       const id = ++this._seq
       this._pending.set(id, { resolve, reject })
       const transferables = this._collectTransferables(args)
-      this._worker.postMessage({ id, fn, args }, transferables)
+      this._worker.postMessage(
+        { id, fn, wasmUrl: this._wasmUrl, args },
+        transferables,
+      )
       if (this._timeout > 0) {
         setTimeout(() => {
           if (this._pending.has(id)) {

@@ -30,3 +30,34 @@ export function getMaxTextureSize() {
   const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
   return gl.getParameter(gl.MAX_TEXTURE_SIZE)
 }
+
+/**
+ *
+ * @param url
+ * @returns {*|string}
+ */
+export function resolveUrl(url) {
+  if (!url || /^[a-zA-Z]+:\/\//.test(url)) {
+    return url
+  }
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      return new URL(url, import.meta.url).href
+    }
+  } catch (e) {}
+  if (
+    typeof document !== 'undefined' &&
+    document.currentScript &&
+    document.currentScript.src
+  ) {
+    return new URL(url, document.currentScript.src).href
+  }
+  try {
+    return new URL(
+      url,
+      typeof location !== 'undefined' ? location.href : undefined,
+    ).href
+  } catch (_) {
+    return url
+  }
+}
